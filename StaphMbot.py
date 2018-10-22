@@ -276,6 +276,35 @@ def processItem(message,db,api):
                         db[2].remItem(warnInfo[-1])
                         # api.logOut.writeln('Removed warning for '+getNameRep(message['message']['reply_to_message']['from'])+' in group '+message['message']['chat']['id'])
                         api.sendMessage(message['message']['chat']['id'],'該條訊息曾於 '+datetime.datetime.fromtimestamp(int(warnInfo[0])).isoformat()+' 被 '+getName(warnInfo[1],message['message']['chat']['id'],api,adminList)+' 以理由「 '+warnInfo[2]+' 」警告過。警告現已取消。該用戶現有 '+str(countWarn(db,message['message']['chat']['id'],message['message']['reply_to_message']['from']['id']))+' 個警告。如該用戶已因警告遭致處分，請管理員亦一同處置。',{'reply_to_message_id':message['message']['message_id']})
+            elif len(message['message']['text'])>4 and message['message']['text'][1:4].lower() == 'G11':
+                if message['message']['chat']['type']!='supergroup':
+                    api.sendMessage(message['message']['chat']['id'],'抱歉，G11 功能僅在超級群組有效。',{'reply_to_message_id':message['message']['message_id']})
+                else:
+                    adminList = {i['user']['id']:getNameRep(i['user']) for i in api.query('getChatAdministrators',{'chat_id':message['message']['chat']['id']})}
+                    if message['message']['from']['id'] not in adminList:
+                        api.sendMessage(message['message']['chat']['id'],'抱歉，僅有濫權管理員方可使用 #G11 G11其他用戶。',{'reply_to_message_id':message['message']['message_id']})
+                    elif 'reply_to_message' not in message['message']:
+                        api.sendMessage(message['message']['chat']['id'],'用法錯誤：請回覆需要被G11的訊息。',{'reply_to_message_id':message['message']['message_id']})
+                    elif db[2].data.execute('SELECT count(header) from warn where "group"=? and "text"=?',(str(message['message']['chat']['id']),str(message['message']['reply_to_message']['message_id']))).fetchone()[0]:
+                        warnInfo = db[2].data.execute('SELECT time,admin,reason from warn where "group"=? and "text"=?',(str(message['message']['chat']['id']),str(message['message']['reply_to_message']['message_id']))).fetchone()
+                        api.sendMessage(message['message']['chat']['id'],'抱歉，該條訊息已於 '+datetime.datetime.fromtimestamp(int(warnInfo[0])).isoformat()+' 被 '+getName(warnInfo[1],message['message']['chat']['id'],api,adminList)+' 以理由「 '+warnInfo[2]+' 」警告過。',{'reply_to_message_id':message['message']['message_id']})
+                    else:
+                        warnInfo = [int(time.time()),message['message']['chat']['id'],message['message']['reply_to_message']['from']['id'],message['message']['reply_to_message']['message_id'],message['message']['from']['id'],message['message']['text'][5:].strip()]
+                        if not warnInfo[-1]:
+                            warnInfo[-1] = "G11"
+                        elif warnInfo[2] in adminList:
+                            api.sendMessage(message['message']['chat']['id'],'竟敢試圖 G11 管理員，你的請求被濫權掉了。',{'reply_to_message_id':message['message']['message_id']})
+                        elif warnInfo[2] == api.info['id'] or message['message']['reply_to_message']['from']['is_bot']:
+                            api.sendMessage(message['message']['chat']['id'],'竟敢試圖 G11 機器人，你的請求被濫權掉了。',{'reply_to_message_id':message['message']['message_id']})
+                        else:
+                            notUnique = True
+                            while notUnique:
+                                id = [randomID()]
+                                notUnique = db[2].hasItem(id[0])
+                            db[2].addItem(id+warnInfo)
+                            rep = api.sendMessage(message['message']['chat']['id'],'G11 成功。',{'reply_to_message_id':message['message']['message_id']})
+                            # api.logOut.writeln('Warned '+getNameRep(message['message']['reply_to_message']['from'])+' in group '+message['message']['chat']['id'])
+                            processBan(db,api,warnInfo[2],warnInfo[1],message['message']['reply_to_message']['date'],rep)
     elif 'new_chat_participant' in message['message']:
         if message['message']['new_chat_participant']['id'] == api.info["id"]:
             addGroup(message['message']['chat']['id'],db,api.logOut)
