@@ -13,7 +13,7 @@ import os
 __version__ = '0.1'
 __doc__ = '''StaphMB - A Telegram Group Management Bot infected by _S. aureus_
 
-Synopsis:\n\tStaphMbot.py sqlite.db API-Key
+Synopsis:\n\tStaphMbot.py sqlite.db API-Key logFile
 
 Version:\n\t'''+str(__version__)
 
@@ -48,7 +48,7 @@ class tgapi:
 
     def query(self,met,parameter=None,retry=None):
         req = ur.Request(self.target+met,method='POST')
-        req.add_header('User-Agent','StaphMbot/0.1 (+https://github.com/StephDC/StaphMbot)')
+        req.add_header('User-Agent','StaphMbot/0.2 (+https://github.com/StephDC/StaphMbot)')
         if parameter is not None:
             req.add_header('Content-Type','application/json')
             req.data = json.dumps(parameter).encode('UTF-8')
@@ -271,7 +271,7 @@ def processItem(message,db,api):
                             while db[2].hasItem(wid[0]):
                                 wid = [randomID()]
                             db[2].addItem(wid+warnInfo)
-                            rep = api.sendMessage(message['message']['chat']['id'],l10n.warnSuccess(countWarn(db,warnInfo[1],warnInfo[2])),{'reply_to_message_id':message['message']['message_id']})
+                            rep = api.sendMessage(message['message']['chat']['id'],l10n.warnSuccess(countWarn(db,warnInfo[1],warnInfo[2]),db[1].getItem(message['message']['chat']['id'],'msg')),{'reply_to_message_id':message['message']['message_id']})
                             #  i,t,u,uid,a,c,m,r
                             if db[1].getItem(message['message']['chat']['id'],'notify'):
                                 api.sendMessage(db[1].getItem(message['message']['chat']['id'],'notify'),l10n.notifyWarn(wid[0],l10n.epochToISO(warnInfo[0]),getNameRep(message['message']['reply_to_message']['from']),warnInfo[2],getNameRep(message['message']['from']),str(countWarn(db,warnInfo[1],warnInfo[2])),message['message']['reply_to_message']['text'] if 'text' in message['message']['reply_to_message'] else None,warnInfo[-1]))
